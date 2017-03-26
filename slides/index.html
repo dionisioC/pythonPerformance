@@ -1,0 +1,660 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>Tips For Python Performance</title>
+
+    <link rel="stylesheet" href="css/reveal.css">
+    <link rel="stylesheet" href="css/theme/black.css">
+
+    <!-- Theme used for syntax highlighting of code -->
+    <link rel="stylesheet" href="lib/css/zenburn.css">
+
+    <!-- Printing and PDF exports -->
+    <script>
+        var link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.type = 'text/css';
+        link.href = window.location.search.match(/print-pdf/gi) ? 'css/print/pdf.css' : 'css/print/paper.css';
+        document.getElementsByTagName('head')[0].appendChild(link);
+    </script>
+</head>
+<body>
+<div class="reveal">
+    <div class="slides">
+
+        <!-- Intro -->
+
+        <section><h1>Tips For Python Performance</h1>
+            <h3>Dionisio Cortés Fernández</h3>
+            <p>
+                <small>cortesfernandezdionisio@gmail.com</small>
+            </p>
+        </section>
+
+        <section><h1>Disclaimer</h1>
+            <ul>
+                <li>Toy examples naively tested</li>
+                <li>Heavily influenced by the links in the references</li>
+                <li>In case of doubt try it yourself</li>
+            </ul>
+        </section>
+
+        <!-- Index -->
+
+        <section><h1>Index</h1>
+            <ul>
+                <li><a href="#Comprehensions">Comprehensions</a></li>
+                <li><a href="#Generators">Generators</a></li>
+                <li><a href="#SetMembershipCheck">Sets for membership checks</a></li>
+                <li><a href="#StringsRightWay">Strings the right way</a></li>
+                <li><a href="#AvoidIntermediateOutputs">Avoid intermediate outputs</a></li>
+                <li><a href="#Cache">Cache the most requested results</a></li>
+            </ul>
+        </section>
+
+        <!-- Comprehensions -->
+        <section id="Comprehensions"><h1>Comprehensions</h1>
+            <section>
+                <ul>
+                    <li>Construct lists in a very natural, easy way, like a mathematician is used to do</li>
+                    <li>No more Java style</li>
+                    <li>Comprehensions perform better</li>
+                </ul>
+            </section>
+            <section>
+                <h2>Bad way</h2>
+                <pre><code class="Python" data-trim contenteditable>
+my_list = []
+for value in range(number_of_loops):
+    my_list.append(value)
+					</code></pre>
+                <p>01 - Comprehensions/comprehensionsGood.py</p>
+            </section>
+            <section>
+                <h2>Good way</h2>
+                <pre><code class="Python" data-trim contenteditable>
+my_list = [value for value in range(number_of_loops)]
+					</code></pre>
+                <p>01 - Comprehensions/comprehensionsBad.py</p>
+            </section>
+            <section>
+                <h2>Results</h2>
+                <p>1000000 elements</p>
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Execution</th>
+                        <th>Good</th>
+                        <th>Bad</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>0.09588098526</td>
+                        <td>0.132848978043</td>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td>0.0807030200958</td>
+                        <td>0.160571098328</td>
+                    </tr>
+                    <tr>
+                        <td>3</td>
+                        <td>0.0885989665985</td>
+                        <td>0.138249874115</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </section>
+            <section>
+                <h2>Bonus - validation</h2>
+                <pre><code class="Python" data-trim contenteditable>
+def modulus_validation(value):
+	return value % 2 == 0
+
+my_list = [value for value in range(number_of_loops)
+		   if modulus_validation(value)]
+					</code></pre>
+            </section>
+            <section>
+                <h2>Bonus - tuples, sets, dicts</h2>
+                <pre><code class="Python" data-trim contenteditable>
+my_tuple = tuple(value for value in range(number_of_loops))
+my_set = {value for value in range(number_of_loops)}
+my_dict = {value: value for value in range(number_of_loops)}
+					</code></pre>
+            </section>
+        </section>
+
+        <!-- Generators -->
+        <section id="Generators"><h1>Generators</h1>
+            <section>
+                <ul>
+                    <li>Generate sequences one item at a time</li>
+                    <li>Performance when working with large data</li>
+                    <li>Memory saver</li>
+                    <li>range python3</li>
+                    <li>xrange python2</li>
+                    <li>range not a generator in python2</li>
+                </ul>
+            </section>
+            <section>
+                <h2>Bad way</h2>
+                <pre><code class="Python" data-trim contenteditable>
+def generator():
+    return [x*2 for x in range(number_of_loops)]
+
+def generator_testing():
+    for loop_count in generator():
+        foo = loop_count + 3
+					</code></pre>
+                <p>02 - Generators/generatorsBad.py</p>
+            </section>
+            <section>
+                <h2>Good way</h2>
+                <pre><code class="Python" data-trim contenteditable>
+def generator():
+    return (x*2 for x in xrange(number_of_loops))
+
+def generator_testing():
+    for loop_count in generator():
+        foo = loop_count + 3
+					</code></pre>
+                <p>02 - Generators/generatorsGood.py</p>
+            </section>
+            <section>
+                <h2>Results time</h2>
+                <p>1000000 elements</p>
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Execution</th>
+                        <th>Good</th>
+                        <th>Bad</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>90.0547389984</td>
+                        <td>76.2436289787</td>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td>80.1943080425</td>
+                        <td>91.3688008785</td>
+                    </tr>
+                    <tr>
+                        <td>3</td>
+                        <td>84.9249260426</td>
+                        <td>77.2983429432</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </section>
+            <section>
+                <h2>Results max memory</h2>
+                <p>1000000 elements</p>
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Execution</th>
+                        <th>Good</th>
+                        <th>Bad</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>12.6 MiB</td>
+                        <td>67.1 MiB</td>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td>12.7 MiB</td>
+                        <td>67.3 MiB</td>
+                    </tr>
+                    <tr>
+                        <td>3</td>
+                        <td>12.6 MiB</td>
+                        <td>67.3 MiB</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </section>
+            <section>
+                <h2>Bonus - Your own generator</h2>
+                <pre><code class="Python" data-trim contenteditable>
+def my_generator(start_value):
+	while True:
+		yield start_value
+		start_value += 1
+					</code></pre>
+                <p>02 - Generators/generators.py</p>
+            </section>
+        </section>
+        <!-- Sets for membership checks -->
+        <section id="SetMembershipCheck"><h1>sets in check</h1>
+            <section>
+                <ul>
+                    <li>Item's positions are calculated rather than searched (O(1))</li>
+                    <li>Inside a list, the interpreter searches the entire list</li>
+                    <li>Unordered collections of <strong style="text-decoration: underline;">unique</strong> elements
+                    </li>
+                </ul>
+            </section>
+            <section>
+                <h2>Bad way</h2>
+                <pre><code class="Python" data-trim contenteditable>
+my_list = [value for value in range(number_of_loops)]
+number_of_loops - 10 in my_list
+					</code></pre>
+                <p>03 - Sets for membership checks/membershipChecksBad.py</p>
+            </section>
+            <section>
+                <h2>Good way</h2>
+                <pre><code class="Python" data-trim contenteditable>
+my_set = {value for value in range(number_of_loops)}
+number_of_loops - 10 in my_set
+					</code></pre>
+                <p>03 - Sets for membership checks/membershipChecksGood.py</p>
+            </section>
+            <section>
+                <h2>Results</h2>
+                <p>1000000 elements</p>
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Execution</th>
+                        <th>Good</th>
+                        <th>Bad</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>5.00679016113e-06</td>
+                        <td>0.0205149650574</td>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td>5.96046447754e-06</td>
+                        <td>0.0210719108582</td>
+                    </tr>
+                    <tr>
+                        <td>3</td>
+                        <td>5.00679016113e-06</td>
+                        <td>0.0188229084015</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </section>
+        </section>
+
+
+        <!-- Strings -->
+        <section id="StringsRightWay"><h1>Strings</h1>
+            <section>
+                <ul>
+                    <li>Strings are immutable</li>
+                    <li>Don't concatenate a big amount of them</li>
+                    <li>Same issue as in Java (using + creates new objects)</li>
+                </ul>
+            </section>
+            <section>
+                <h2>Warm up</h2>
+                <pre><code class="Python" data-trim contenteditable>
+lis = list(ascii_lowercase)
+my_config = config.get_config()
+number_of_loops = my_config.getint("Global", "number_of_loops")
+examples = [lis[int(random() * 26)] for _ in xrange(number_of_loops)]
+					</code></pre>
+            </section>
+            <section>
+                <h2>Bad way</h2>
+                <pre><code class="Python" data-trim contenteditable>
+def string_joiner():
+    final_string = ''
+    for c in examples:
+        final_string += c
+					</code></pre>
+                <p>04 - Strings the right way/stringsBad.py</p>
+            </section>
+            <section>
+                <h2>Good way</h2>
+                <pre><code class="Python" data-trim contenteditable>
+def string_joiner():
+    ''.join(examples)
+					</code></pre>
+                <p>04 - Strings the right way/stringsGood.py</p>
+            </section>
+            <section>
+                <h2>Results</h2>
+                <p>1000000 elements</p>
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Execution</th>
+                        <th>Good</th>
+                        <th>Bad</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>0.0123269557953</td>
+                        <td>125.284370899</td>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td>0.0124909877777</td>
+                        <td>117.584208965</td>
+                    </tr>
+                    <tr>
+                        <td>3</td>
+                        <td>0.0123250484467</td>
+                        <td>124.356750011</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </section>
+            <section>
+                <h2>Bonus</h2>
+                <pre><code class="Python" data-trim contenteditable>
+print ("Ms. %s! My %s crawled in my %s and then I %s it."
+       "Can I have another one?" % ("Hoover", "worm", "mouth", "ate"))
+					</code></pre>
+                <pre><code class="Python" data-trim contenteditable>
+print ("Ms. {}! My {} crawled in my {} and then I {} it."
+       "Can I have another one?".format("Hoover", "worm", "mouth", "ate"))
+					</code></pre>
+                <pre><code class="Python" data-trim contenteditable>
+print ("Ms. {0}! My {2} crawled in my {1} and then I {3} it."
+       "Can I have another one?".format("Hoover", "worm", "mouth", "ate"))
+					</code></pre>
+                <p>04 - Strings the right way/stringsBonus.py</p>
+            </section>
+            <section>
+                <h2>Bonus</h2>
+                <p>Ms. Hoover! My worm crawled in my mouth and then I ate it.Can I have another one?</p>
+                <p>Ms. Hoover! My worm crawled in my mouth and then I ate it.Can I have another one?</p>
+                <p>Ms. Hoover! My mouth crawled in my worm and then I ate it.Can I have another one?</p>
+            </section>
+        </section>
+
+
+        <!-- Intermediate output -->
+        <section id="AvoidIntermediateOutputs"><h1>No mid out</h1>
+            <section>
+                <ul>
+                    <li>Avoid I/O when possible</li>
+                    <li>Print synchronous</li>
+                    <li>OS issue not python specific</li>
+                </ul>
+            </section>
+            <section>
+                <h2>Bad way</h2>
+                <pre><code class="Python" data-trim contenteditable>
+def intermediate_testing():
+    for loop_count in range(number_of_loops):
+        print ('Hi')
+        print ('How')
+        print ('Are')
+        print ('You')
+					</code></pre>
+                <p>05 - Avoid intermediate outputs/intermediateBad.py</p>
+            </section>
+            <section>
+                <h2>Good way</h2>
+                <pre><code class="Python" data-trim contenteditable>
+def intermediate_testing():
+    for loop_count in range(number_of_loops):
+        print ('Hi how are you')
+					</code></pre>
+                <p>05 - Avoid intermediate outputs/intermediateGood.py</p>
+            </section>
+            <section>
+                <h2>Results</h2>
+                <p>1000000 elements</p>
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Execution</th>
+                        <th>Good</th>
+                        <th>Bad</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>1.32236790657</td>
+                        <td>4.83762598038</td>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td>1.45444393158</td>
+                        <td>5.39266395569</td>
+                    </tr>
+                    <tr>
+                        <td>3</td>
+                        <td>1.38991999626</td>
+                        <td>4.99856710434</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </section>
+            <section>
+                <h2>Weird</h2>
+                <pre><code class="Python" data-trim contenteditable>
+def intermediate_no_print_testing():
+    for loop_count in range(number_of_loops):
+        foo = 20
+        foo += 20
+        foo += 20
+        foo += 20
+					</code></pre>
+                <pre><code class="Python" data-trim contenteditable>
+def intermediate_no_print_testing():
+    for loop_count in range(number_of_loops):
+        foo = 20 + 20 + 20
+					</code></pre>
+            </section>
+            <section>
+                <h2>Results</h2>
+                <p>1000000 elements</p>
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Execution</th>
+                        <th>Good</th>
+                        <th>Bad</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>0.0615119934082</td>
+                        <td>0.141456842422</td>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td>0.0611300468445</td>
+                        <td>0.140588998795</td>
+                    </tr>
+                    <tr>
+                        <td>3</td>
+                        <td>0.0617189407349</td>
+                        <td>0.143658161163</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </section>
+
+        </section>
+
+        <!-- Cache -->
+        <section id="Cache"><h1>Cache</h1>
+
+            <section>
+                <ul>
+                    <li>Keep the most used values</li>
+                    <li>Avoid calculus or data access</li>
+                    <li>Not costless</li>
+                    <li>python3 built in</li>
+                    <li>python2 repoze.lru</li>
+
+                </ul>
+            </section>
+            <section>
+                <h2>Bad way</h2>
+                <pre><code class="Python" data-trim contenteditable>
+def expensive_function(value):
+    return value * 2
+
+def cache_testing():
+    for loop_count in range(number_of_loops):
+        expensive_function(loop_count % 8)
+					</code></pre>
+                <p>06 - Cache the most requested results/cacheBad.py</p>
+            </section>
+            <section>
+                <h2>Good way</h2>
+                <pre><code class="Python" data-trim contenteditable>
+@lru_cache(maxsize=cache_size)
+def expensive_function(value):
+    return value * 2
+
+def cache_testing():
+    for loop_count in range(number_of_loops):
+        expensive_function(loop_count % 8)
+					</code></pre>
+                <p>06 - Cache the most requested results/cacheGood.py</p>
+            </section>
+            <section>
+                <h2>Results</h2>
+                <p>1000000 elements</p>
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Execution</th>
+                        <th>Good</th>
+                        <th>Bad</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>0.0140950679779</td>
+                        <td>0.00322794914246</td>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td>0.013916015625</td>
+                        <td>0.00336909294128</td>
+                    </tr>
+                    <tr>
+                        <td>3</td>
+                        <td>0.0149850845337</td>
+                        <td>0.00322699546814</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </section>
+            <section>
+                <h2>Bad way</h2>
+                <pre><code class="Python" data-trim contenteditable>
+def expensive_function(value):
+    time.sleep(0.5)
+    return value * 2
+
+
+def cache_testing():
+    for loop_count in range(number_of_loops):
+        expensive_function(loop_count % 8)
+					</code></pre>
+                <p>06 - Cache the most requested results/cacheBad.py</p>
+            </section>
+            <section>
+                <h2>Good way</h2>
+                <pre><code class="Python" data-trim contenteditable>
+@lru_cache(maxsize=cache_size)
+def expensive_function(value):
+    time.sleep(0.5)
+    return value * 2
+
+def cache_testing():
+    for loop_count in range(number_of_loops):
+        expensive_function(loop_count % 8)
+					</code></pre>
+                <p>06 - Cache the most requested results/cacheGood.py</p>
+            </section>
+            <section>
+                <h2>Results</h2>
+                <p>1000000 elements</p>
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Execution</th>
+                        <th>Good</th>
+                        <th>Bad</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>4.0050110817</td>
+                        <td>50.057502985</td>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td>4.00507116318</td>
+                        <td>50.055670023</td>
+                    </tr>
+                    <tr>
+                        <td>3</td>
+                        <td>4.00501394272</td>
+                        <td>50.0575909615</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </section>
+        </section>
+        <!-- References -->
+
+        <section><h1>References</h1>
+            <ul>
+                <li><a href="https://www.packtpub.com/books/content/7-tips-python-performance">7 Tips For Python
+                    Performance</a></li>
+            </ul>
+        </section>
+
+    </div>
+</div>
+
+<script src="lib/js/head.min.js"></script>
+<script src="js/reveal.js"></script>
+
+<script>
+    // More info https://github.com/hakimel/reveal.js#configuration
+    Reveal.initialize({
+        history: true,
+
+        // More info https://github.com/hakimel/reveal.js#dependencies
+        dependencies: [
+            {src: 'plugin/markdown/marked.js'},
+            {src: 'plugin/markdown/markdown.js'},
+            {src: 'plugin/notes/notes.js', async: true},
+            {
+                src: 'plugin/highlight/highlight.js', async: true, callback: function () {
+                hljs.initHighlightingOnLoad();
+            }
+            }
+        ]
+    });
+</script>
+</body>
+</html>
